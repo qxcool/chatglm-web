@@ -1,8 +1,41 @@
 edition: 1.0.0        #  命令行YAML规范版本，遵循语义化版本（Semantic Versioning）规范
-name: chatglm-web      #  项目名称
-access: default       #  秘钥别名
+name: chat-web       #  项目名称
+access: qxcool-chat  #  秘钥别名
+steps:
+  # 构建并部署
+  - name: build-and-deploy
+    context:
+      data:
+        # 打开任务执行，默认是关闭的
+        enable: true
+        # 同样可以在此处声明钉钉告警配置，修改告警模板
+        # dingdingNotification:
+        # 同样可以在此处声明或修改RunnerConfig
+        # runnerConfig:
+        # 执行步骤。下述步骤将会采用开源项目serverless-cd提供的engine进行执行
+        steps:
+          # 每个Task都是独立运行的Serverless实例，需要重新checkout
+          # 如果使用了缓存，它会执行得很快
+          - plugin: "@serverless-cd/checkout"
+          # 同理，需要再次初始化s工具
+          - run: |
 
-actions: # 自定义全局的执行逻辑
-  pre-deploy: # 项目deploy执行之前执行
-    - run: bash start.sh # 要运行的命令行
-      path: ./src # 命令行运行的路径
+
+							cd ./service
+							pip install --no-cache-dir -r requirements.txt
+							python gen_data.py
+							cd ..
+							npm install pnpm -g
+
+          # 执行s-deploy
+          - run: |
+							cd ./service
+							nohup python main.py --device 'cuda:0'
+							echo "Start service complete!"
+
+
+							cd ..
+							echo "" > front.log
+							nohup pnpm dev > front.log &
+							echo "Start front complete!"
+							tail -f front.log
